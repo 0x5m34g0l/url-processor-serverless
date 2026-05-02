@@ -11,48 +11,89 @@ eventbridge = boto3.client('events')
 
 def lambda_handler(event, context):
     try:
-        body = json.loads(event.get("body", "{}"))
-        url = body.get("url")
+        http_method = event.get("httpMethod")
 
-        if not url:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({"error": "URL is required"})
-            }
+        # =========================
+        # POST → Submit URL
+        # =========================
+        if http_method == "POST":
+            body = json.loads(event.get("body", "{}"))
+            url = body.get("url")
 
-        job_id = str(uuid.uuid4())
-
-        # Save job in DynamoDB
-        table.put_item(
-            Item={
-                "job_id": job_id,
-                "url": url,
-                "status": "PENDING"
-            }
-        )
-
-        # Send event to EventBridge
-        eventbridge.put_events(
-            Entries=[
-                {
-                    "Source": "url.processor",
-                    "DetailType": "ProcessURL",
-                    "Detail": json.dumps({
-                        "job_id": job_id,
-                        "url": url
-                    }),
-                    "EventBusName": os.environ.get("EVENT_BUS_NAME", "default")
+            if not url:
+                return {
+                    "statusCode": 400,
+                    "body": json.dumps({"error": "URL is required"})
                 }
-            ]
-        )
 
-        return {
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": "Job submitted",
-                "job_id": job_id
-            })
-        }
+            job_id = str(uuid.uuid4())
+
+            # Save job in DynamoDB
+            table.put_item(
+                Item={
+                    "job_id": job_id,
+                    "url": url,
+                    "status": "PENDING"
+                }
+            )
+
+            # Send event to EventBridge
+            eventbridge.put_events(
+                Entries=[
+                    {
+                        "Source": "url.processor",
+                        "DetailType": "ProcessURL",
+                        "Detail": json.dumps({
+                            "job_id": job_id,
+                            "url": url
+                        }),
+                        "EventBusName": os.environ.get("EVENT_BUS_NAME", "default")
+                    }
+                ]
+            )
+
+            return {
+                "statusCode": 200,
+                "body": json.dumps({
+                    "message": "Job submitted",
+                    "job_id": job_id
+                })
+            }
+
+        # =========================
+        # GET → Fetch Job Result
+        # =========================
+        elif http_method == "GET":
+            job_id = event.get("pathParameters", {}).get("id")
+
+            if not job_id:
+                return {
+                    "statusCode": 400,
+                    "body": json.dumps({"error": "Job ID is required"})
+                }
+
+            response = table.get_item(Key={"job_id": job_id})
+            item = response.get("Item")
+
+            if not item:
+                return {
+                    "statusCode": 404,
+                    "body": json.dumps({"error": "Job not found"})
+                }
+
+            return {
+                "statusCode": 200,
+                "body": json.dumps(item)
+            }
+
+        # =========================
+        # Invalid Method
+        # =========================
+        else:
+            return {
+                "statusCode": 405,
+                "body": json.dumps({"error": "Method not allowed"})
+            }
 
     except Exception as e:
         return {
