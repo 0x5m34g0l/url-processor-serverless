@@ -13,9 +13,9 @@ def lambda_handler(event, context):
     try:
         http_method = event.get("httpMethod")
 
-        # =========================
-        # POST → Submit URL
-        # =========================
+        
+        # POST url
+        
         if http_method == "POST":
             body = json.loads(event.get("body", "{}"))
             url = body.get("url")
@@ -60,9 +60,9 @@ def lambda_handler(event, context):
                 })
             }
 
-        # =========================
-        # GET → Fetch Job Result
-        # =========================
+        
+        # GET posted Job Result
+        
         elif http_method == "GET":
             job_id = event.get("pathParameters", {}).get("id")
 
@@ -86,9 +86,9 @@ def lambda_handler(event, context):
                 "body": json.dumps(item)
             }
 
-        # =========================
-        # Invalid Method
-        # =========================
+        
+        # Invalid Method message
+        
         else:
             return {
                 "statusCode": 405,
@@ -100,3 +100,4 @@ def lambda_handler(event, context):
             "statusCode": 500,
             "body": json.dumps({"error": str(e)})
         }
+#i test the  CI/CD pipeline to see the workflow
