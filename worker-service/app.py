@@ -38,8 +38,11 @@ def lambda_handler(event, context):
         #Update the DynamoDB
         table.update_item(
             Key={"job_id": job_id},
-            UpdateExpression="SET #s = :s, result = :r",
-            ExpressionAttributeNames={"#s": "status"},
+            UpdateExpression="SET #s = :s, #r = :r",
+            ExpressionAttributeNames={
+                "#s": "status",
+                "#r": "result"
+            },
             ExpressionAttributeValues={
                 ":s": "COMPLETED",
                 ":r": {
