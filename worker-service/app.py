@@ -21,21 +21,21 @@ def lambda_handler(event, context):
 
         print(f"Processing job: {job_id}")
 
-        # Fetch webpage
+        #fetch webpage
         response = requests.get(url, timeout=5)
         html = response.text
 
-        # Parse HTML
+        #parse HTML
         soup = BeautifulSoup(html, "html.parser")
 
-        # Extract title
+        #extract title
         title = soup.title.string if soup.title else "No Title"
 
-        # Count words
+        #Count words
         text = soup.get_text()
         word_count = len(text.split())
 
-        # Update DynamoDB
+        #Update the DynamoDB
         table.update_item(
             Key={"job_id": job_id},
             UpdateExpression="SET #s = :s, result = :r",
@@ -54,7 +54,7 @@ def lambda_handler(event, context):
     except Exception as e:
         print(f"Error: {str(e)}")
 
-        # mark job as failed
+        #mark job as failed
         if job_id:
             table.update_item(
                 Key={"job_id": job_id},
